@@ -6,13 +6,15 @@ import torch
 from logger import Logger
 from config import Config
 import utils
+
 from models.MLP import MLP
+from models.RNN import RNN
 
 
 conf = Config()
 
-def load_data(path):
-    data = utils.load_dataset(path, conf.sr)
+def load_data(path, sr):
+    data = utils.load_dataset(path, sr)
     features = []
     labels = []
     for x, y in data:
@@ -25,11 +27,22 @@ def load_data(path):
 
 
 def main():
-    train_data, train_label = load_data(conf.train_path)
-    n_features, n_labels = (len(train_data[0]), 11)
-    model = MLP([n_features, 100, 50, n_labels], conf.dropout)
+    load_data_fn = {
+            "normal" : load_data,
+            "stft" : utils.extract_stft
+            }
+    mode = "stft"
 
-    valid_data, valid_label = load_data(conf.valid_path)
+    train_data, train_label = load_data_fn[mode](conf.train_path, conf.sr)
+    n_features, n_labels = (len(train_data[0]), 11)
+
+    if conf.model_name == "MLP":
+        model = MLP([n_features, 100, 50, n_labels], conf.dropout)
+    elif conf.model_name == "GRU" or conf.model_name == "LSTM":
+        n_features = train_data[0].shape[1]
+        model = RNN(conf.model_name, n_features, 100, n_labels, 2, conf.dropout)
+
+    valid_data, valid_label = load_data_fn[mode](conf.valid_path, conf.sr)
     min_loss = float("inf")
     lr = conf.lr
 
@@ -66,7 +79,7 @@ def main():
         logger.scalar_summary("dev acc", valid_acc, epoch)
 
     model = torch.load(save_file)
-    test_data, test_label = load_data(conf.test_path)
+    test_data, test_label = load_data_fn[mode](conf.test_path, conf.sr)
     test_loss, test_acc = model.evaluate(test_data, test_label)
     print("Best validation loss: {:5.6f}\nTest set\tLoss: {:5.6f}\tAccuracy: {:2.6f}"
             .format(min_loss, test_loss, test_acc))
