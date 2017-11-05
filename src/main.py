@@ -9,6 +9,7 @@ import utils
 
 from models.MLP import MLP
 from models.RNN import RNN
+from models.CNN import *
 
 
 conf = Config()
@@ -22,7 +23,6 @@ def load_data(path, sr):
         features.append(feature)
         labels.append(y)
 
-    print("{} data in [{}] loaded".format(len(data), path))
     return np.array(features), np.array(labels)
 
 
@@ -41,6 +41,10 @@ def main():
     elif conf.model_name == "GRU" or conf.model_name == "LSTM":
         n_features = train_data[0].shape[1]
         model = RNN(conf.model_name, n_features, 100, n_labels, 2, conf.dropout)
+    elif conf.model_name == "CNN2d":
+        max_T = 60
+        n_features = train_data[0].shape[1]
+        model = CNN2d(n_features, max_T, n_labels, conf.dropout)
 
     valid_data, valid_label = load_data_fn[mode](conf.valid_path, conf.sr)
     min_loss = float("inf")

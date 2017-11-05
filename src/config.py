@@ -12,7 +12,7 @@ class Config(object):
     if not os.path.exists(save_path):
         os.mkdir(save_path)
 
-    model_name = "GRU"
+    model_name = "CNN2d"
 
     sr = 16000
     n_mfcc = 40

@@ -81,17 +81,24 @@ def extract_stft(path, sr):
     return np.array(stft), np.array(label)
 
 
-def padding(batch_data):
+def padding(batch_data, max_len=None):
     """
     For variable-length data in a batch, zero-padding the short ones
 
     @param 
         batch_data: numpy array, has dimension (batch_size, seq_len, n_feature)
+        max_len: int, max sequence length
 
     @return 
         padded_data: numpy array, same format as batch_data, but padded
         seq_lens: list of lengths of sequences in a batch
     """
+    if max_len:
+        batch_data[0] = batch_data[0][:max_len,:]
+        n_padding = max_len - batch_data[0].shape[0]
+        batch_data[0] = np.concatenate(
+                (batch_data[0], np.zeros((n_padding, batch_data[0].shape[1]))))
+
     batch_size = len(batch_data)
     lens = [data.shape[0] for data in batch_data]
     max_len = max(lens)
@@ -105,7 +112,7 @@ def padding(batch_data):
     return padded_data, np.array(lens)
 
 
-def batchify(data, label, batch_size=None, shuffle=False, var_len=False):
+def batchify(data, label, batch_size=None, shuffle=False, var_len=False, max_len=None):
     if not batch_size:
         batch_size = len(data)
 
@@ -119,7 +126,7 @@ def batchify(data, label, batch_size=None, shuffle=False, var_len=False):
         start = i * batch_size
         indices = order[start:start+batch_size]
         if var_len:
-            x, seq_len = padding(data[indices])
+            x, seq_len = padding(data[indices], max_len)
             idx = np.flip(np.argsort(seq_len), 0) # sort descendantly
             yield (x[idx], label[indices][idx], seq_len[idx])
         else:
