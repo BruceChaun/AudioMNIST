@@ -10,32 +10,25 @@ import utils
 from models.MLP import MLP
 from models.RNN import RNN
 from models.CNN import *
-
-
-conf = Config()
-
-def load_data(path, sr):
-    data = utils.load_dataset(path, sr)
-    features = []
-    labels = []
-    for x, y in data:
-        feature = np.concatenate(utils.extract_features(x, conf.sr, conf.n_mfcc))
-        features.append(feature)
-        labels.append(y)
-
-    return np.array(features), np.array(labels)
+from models.RBM import RBM
 
 
 def main():
+    conf = Config()
+
     load_data_fn = {
-            "normal" : load_data,
+            "normal" : utils.load_data,
             "stft" : utils.extract_stft
             }
-    mode = "stft"
+    mode = "normal"
 
-    train_data, train_label = load_data_fn[mode](conf.train_path, conf.sr)
+    # Load data
+    train_data, train_label = load_data_fn[mode](conf.train_path, conf)
     n_features, n_labels = (len(train_data[0]), 11)
+    valid_data, valid_label = load_data_fn[mode](conf.valid_path, conf)
+    test_data, test_label = load_data_fn[mode](conf.test_path, conf)
 
+    # define model
     if conf.model_name == "MLP":
         model = MLP([n_features, 100, 50, n_labels], conf.dropout)
     elif conf.model_name == "GRU" or conf.model_name == "LSTM":
@@ -45,8 +38,12 @@ def main():
         max_T = 60
         n_features = train_data[0].shape[1]
         model = CNN2d(n_features, max_T, n_labels, conf.dropout)
+    elif conf.model_name == "RBM":
+        rbm = RBM(n_features, 128, 1)
+        rbm.pretrain(train_data, train_label, conf)
+        return 
 
-    valid_data, valid_label = load_data_fn[mode](conf.valid_path, conf.sr)
+    # training preparation
     min_loss = float("inf")
     lr = conf.lr
 
@@ -62,6 +59,7 @@ def main():
 
     logger = Logger(conf.log_path)
 
+    # Training
     for epoch in range(conf.epochs):
         print("Epoch {}".format(epoch))
         train_loss, train_acc = model.train_(train_data, train_label, lr, conf)
@@ -82,8 +80,8 @@ def main():
         logger.scalar_summary("dev loss", valid_loss, epoch)
         logger.scalar_summary("dev acc", valid_acc, epoch)
 
+    # Test
     model = torch.load(save_file)
-    test_data, test_label = load_data_fn[mode](conf.test_path, conf.sr)
     test_loss, test_acc = model.evaluate(test_data, test_label)
     print("Best validation loss: {:5.6f}\nTest set\tLoss: {:5.6f}\tAccuracy: {:2.6f}"
             .format(min_loss, test_loss, test_acc))

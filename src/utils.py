@@ -30,10 +30,22 @@ def load_dataset(path, sr):
             "o" : 10
             }
     dataset = []
-    for f in os.listdir(path):
+    for f in os.listdir(path)[:10]:
         audio, _ = librosa.load(os.path.join(path, f), sr)
         dataset.append((audio, label_mapping[f[0]]))
     return dataset
+
+
+def load_data(path, conf):
+    data = load_dataset(path, conf.sr)
+    features = []
+    labels = []
+    for x, y in data:
+        feature = np.concatenate(extract_features(x, conf.sr, conf.n_mfcc))
+        features.append(feature)
+        labels.append(y)
+
+    return np.array(features), np.array(labels)
 
 
 def extract_features(audio, sr, n_mfcc):
@@ -68,11 +80,11 @@ def extract_features(audio, sr, n_mfcc):
     return (mfcc, chroma, mel, sc, tonnetz)
 
 
-def extract_stft(path, sr):
+def extract_stft(path, conf):
     """
     Only extract stft features, using default settings
     """
-    dataset = load_dataset(path, sr)
+    dataset = load_dataset(path, conf.sr)
     stft = []
     label = []
     for x, y in dataset:
