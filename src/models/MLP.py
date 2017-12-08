@@ -50,13 +50,17 @@ class MLP(nn.Module):
         for batch, (x, y) in enumerate(batchify(data, label, conf.batch_size, True)):
             x = Variable(torch.Tensor(x), volatile=False)
             y = Variable(torch.LongTensor(y))
+            if torch.cuda.is_available:
+                x = x.cuda()
+                y = y.cuda()
+
             self.zero_grad()
             y_hat = self.forward(x)
             loss = loss_fn(y_hat, y)
             loss.backward()
             opt.step()
 
-            total_loss += loss.data[0]
+            total_loss += loss.data.cpu().numpy()[0]
             total_acc += acc(y_hat, y)
 
             if (batch + 1) % conf.log_interval == 0:
@@ -78,10 +82,14 @@ class MLP(nn.Module):
         for batch, (x, y) in enumerate(batchify(data, label)):
             x = Variable(torch.Tensor(x), volatile=True)
             y = Variable(torch.LongTensor(y))
+            if torch.cuda.is_available:
+                x = x.cuda()
+                y = y.cuda()
+
             y_hat = self.forward(x)
             loss = loss_fn(y_hat, y)
 
-            total_loss += loss.data[0]
+            total_loss += loss.data.cpu().numpy()[0]
             total_acc += acc(y_hat, y)
 
         return total_loss/data_size, total_acc/data_size

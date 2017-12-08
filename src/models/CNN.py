@@ -25,7 +25,7 @@ class CNN2d(nn.Module):
 
         x = self.__get_features(
                 Variable(torch.zeros(1, 1, max_T, n_feature)))
-        self.nfeature = np.prod(x.size())
+        self.nfeature = int(np.prod(x.size()))
 
         self.fc1 = nn.Linear(self.nfeature, 500)
         self.fc2 = nn.Linear(500, 50)
@@ -75,7 +75,7 @@ class CNN2d(nn.Module):
             loss.backward()
             opt.step()
 
-            total_loss += loss.data[0]
+            total_loss += loss.data.cpu().numpy()[0]
             total_acc += acc(y_hat, y)
 
             if (batch + 1) % conf.log_interval == 0:
@@ -102,7 +102,7 @@ class CNN2d(nn.Module):
             y_hat = self.forward(x)
             loss = loss_fn(y_hat, y)
 
-            total_loss += loss.data[0]
+            total_loss += loss.data.cpu().numpy()[0]
             total_acc += acc(y_hat, y)
 
         return total_loss/data_size, total_acc/data_size

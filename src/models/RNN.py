@@ -68,13 +68,18 @@ class RNN(nn.Module):
             h = self.init_hidden(len(x))
             x = Variable(torch.Tensor(x), volatile=False)
             y = Variable(torch.LongTensor(y))
+            if torch.cuda.is_available:
+                x = x.cuda()
+                y = y.cuda()
+                h = h.cuda()
+
             self.zero_grad()
             y_hat = self.forward(x, h, seq_len)
             loss = loss_fn(y_hat, y)
             loss.backward()
             opt.step()
 
-            total_loss += loss.data[0]
+            total_loss += loss.data.cpu().numpy()[0]
             total_acc += acc(y_hat, y)
 
             if (batch + 1) % conf.log_interval == 0:
@@ -97,10 +102,15 @@ class RNN(nn.Module):
             h = self.init_hidden(len(x))
             x = Variable(torch.Tensor(x), volatile=True)
             y = Variable(torch.LongTensor(y))
+            if torch.cuda.is_available:
+                x = x.cuda()
+                y = y.cuda()
+                h = h.cuda()
+
             y_hat = self.forward(x, h, seq_len)
             loss = loss_fn(y_hat, y)
 
-            total_loss += loss.data[0]
+            total_loss += loss.data.cpu().numpy()[0]
             total_acc += acc(y_hat, y)
 
         return total_loss/data_size, total_acc/data_size

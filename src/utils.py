@@ -31,8 +31,8 @@ def load_dataset(path, sr):
             "o" : 10
             }
     dataset = []
-    for f in os.listdir(path):
-        audio, _ = librosa.load(os.path.join(path, f), sr)
+    for f in os.listdir(path)[:40]:
+        audio, _ = librosa.load(os.path.join(path, f), sr, duration=5)
         dataset.append((audio, label_mapping[f[0]]))
     return dataset
 
@@ -144,3 +144,33 @@ def batchify(data, label, batch_size=None, shuffle=False, var_len=False, max_len
             yield (x[idx], label[indices][idx], seq_len[idx])
         else:
             yield (data[indices], label[indices])
+
+
+if __name__ == '__main__':
+    import config
+    import pickle
+    conf = config.Config()
+
+    load_data_fn = {
+            "normal" : load_data,
+            "stft" : extract_stft
+            }
+    mode = "normal" if conf.model_name == 'MLP' else 'stft'
+    print(mode)
+
+    # Load data
+    train_data, train_label = load_data_fn[mode](conf.train_path, conf)
+    n_features, n_labels = (len(train_data[0]), 11)
+    valid_data, valid_label = load_data_fn[mode](conf.valid_path, conf)
+    test_data, test_label = load_data_fn[mode](conf.test_path, conf)
+
+    print("train {}".format(len(train_data)))
+    print("valid {}".format(len(valid_data)))
+    print("test {}".format(len(test_data)))
+
+    pickle.dump(train_data, open(mode+"_music_train_data.p", "wb"))
+    pickle.dump(train_label, open(mode+"_music_train_label.p", "wb"))
+    pickle.dump(valid_data, open(mode+"_music_valid_data.p", "wb"))
+    pickle.dump(valid_label, open(mode+"_music_valid_label.p", "wb"))
+    pickle.dump(test_data, open(mode+"_music_test_data.p", "wb"))
+    pickle.dump(test_label, open(mode+"_music_test_label.p", "wb"))
