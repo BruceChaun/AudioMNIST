@@ -20,7 +20,7 @@ def main():
             "normal" : utils.load_data,
             "stft" : utils.extract_stft
             }
-    mode = "normal"
+    mode = "normal" if conf.model_name == 'MLP' else 'stft'
 
     # Load data
     train_data, train_label = load_data_fn[mode](conf.train_path, conf)

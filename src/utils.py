@@ -18,6 +18,7 @@ def acc(output, target):
 def load_dataset(path, sr):
     label_mapping = {
             "z" : 0, 
+            "0" : 0, 
             "1" : 1, 
             "2" : 2, 
             "3" : 3, 
@@ -30,7 +31,7 @@ def load_dataset(path, sr):
             "o" : 10
             }
     dataset = []
-    for f in os.listdir(path)[:10]:
+    for f in os.listdir(path):
         audio, _ = librosa.load(os.path.join(path, f), sr)
         dataset.append((audio, label_mapping[f[0]]))
     return dataset

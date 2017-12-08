@@ -3,7 +3,7 @@ import os
 
 class Config(object):
 
-    data_path = "../data"
+    data_path = "../data/music"
     train_path = data_path + "/train"
     valid_path = data_path + "/valid"
     test_path = data_path + "/test"
@@ -12,14 +12,14 @@ class Config(object):
     if not os.path.exists(save_path):
         os.mkdir(save_path)
 
-    model_name = "CNN2d"
+    model_name = "MLP"
 
-    sr = 16000
+    sr = 44100
     n_mfcc = 40
     
     epochs = 100
     batch_size = 32
     dropout = 0.5
-    lr = 0.001
+    lr = 0.01
     L2 = 0
     log_interval = 10
