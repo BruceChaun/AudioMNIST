@@ -50,7 +50,7 @@ class MLP(nn.Module):
         for batch, (x, y) in enumerate(batchify(data, label, conf.batch_size, True)):
             x = Variable(torch.Tensor(x), volatile=False)
             y = Variable(torch.LongTensor(y))
-            if torch.cuda.is_available:
+            if torch.cuda.is_available():
                 x = x.cuda()
                 y = y.cuda()
 
@@ -82,7 +82,7 @@ class MLP(nn.Module):
         for batch, (x, y) in enumerate(batchify(data, label)):
             x = Variable(torch.Tensor(x), volatile=True)
             y = Variable(torch.LongTensor(y))
-            if torch.cuda.is_available:
+            if torch.cuda.is_available():
                 x = x.cuda()
                 y = y.cuda()
 

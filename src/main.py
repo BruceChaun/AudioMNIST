@@ -55,7 +55,7 @@ def main():
         n_features = train_data[0].shape[1]
         model = RNN(conf.model_name, n_features, 100, n_labels, 2, conf.dropout)
     elif conf.model_name == "CNN2d":
-        max_T = 60
+        max_T = 400 if "music" in conf.data_path else 60
         n_features = train_data[0].shape[1]
         model = CNN2d(n_features, max_T, n_labels, conf.dropout)
     elif conf.model_name == "RBM":
@@ -81,7 +81,7 @@ def main():
 
     logger = Logger(conf.log_path)
 
-    if torch.cuda.is_available:
+    if torch.cuda.is_available():
         model.cuda()
 
     # Training
