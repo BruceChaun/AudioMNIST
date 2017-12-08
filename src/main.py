@@ -6,6 +6,7 @@ import torch
 from logger import Logger
 from config import Config
 import utils
+import pickle
 
 from models.MLP import MLP
 from models.RNN import RNN
@@ -23,10 +24,29 @@ def main():
     mode = "normal" if conf.model_name == 'MLP' else 'stft'
 
     # Load data
-    train_data, train_label = load_data_fn[mode](conf.train_path, conf)
-    n_features, n_labels = (len(train_data[0]), 11)
-    valid_data, valid_label = load_data_fn[mode](conf.valid_path, conf)
-    test_data, test_label = load_data_fn[mode](conf.test_path, conf)
+    if os.path.exists(mode+"_music_train_data.p"):
+        with open(mode+"_music_train_data.p", "rb") as f:
+            train_data = pickle.load(f, encoding='latin1')
+        with open(mode+"_music_train_label.p", "rb") as f:
+            train_label = pickle.load(f, encoding='latin1')
+        with open(mode+"_music_valid_data.p", "rb") as f:
+            valid_data = pickle.load(f, encoding='latin1')
+        with open(mode+"_music_valid_label.p", "rb") as f:
+            valid_label = pickle.load(f, encoding='latin1')
+        with open(mode+"_music_test_data.p", "rb") as f:
+            test_data = pickle.load(f, encoding='latin1')
+        with open(mode+"_music_test_label.p", "rb") as f:
+            test_label = pickle.load(f, encoding='latin1')
+    else:
+        train_data, train_label = load_data_fn[mode](conf.train_path, conf)
+        valid_data, valid_label = load_data_fn[mode](conf.valid_path, conf)
+        test_data, test_label = load_data_fn[mode](conf.test_path, conf)
+
+    print("train set = {}".format(len(train_data)))
+    print("valid set = {}".format(len(valid_data)))
+    print("test set = {}".format(len(test_data)))
+
+    n_features, n_labels = (len(train_data[0]), 9)
 
     # define model
     if conf.model_name == "MLP":
@@ -45,19 +65,24 @@ def main():
 
     # training preparation
     min_loss = float("inf")
+    best_acc = 0
     lr = conf.lr
 
-    save_file = os.path.join(conf.save_path, model.name)
+    save_file = os.path.join(conf.save_path, model.name + "_music")
     if os.path.exists(save_file):
         try:
             model = torch.load(save_file)
-            min_loss, _ = model.evaluate(valid_data, valid_label)
+            min_loss, best_acc = model.evaluate(valid_data, valid_label)
             print("Initial validation loss: {:5.6f}".format(min_loss))
-        except RuntimeError, e:
-            print("[loading existing model error] {}".format(str(e)))
+            print("Initial validation acc: {:5.6f}".format(best_acc))
+        except Exception:
+            #print("[loading existing model error] {}".format(str(e)))
             model = MLP([n_features, 100, 50, n_labels], conf.dropout)
 
     logger = Logger(conf.log_path)
+
+    if torch.cuda.is_available:
+        model.cuda()
 
     # Training
     for epoch in range(conf.epochs):
@@ -65,12 +90,13 @@ def main():
         train_loss, train_acc = model.train_(train_data, train_label, lr, conf)
         valid_loss, valid_acc = model.evaluate(valid_data, valid_label)
 
-        if valid_loss < min_loss:
+        if valid_acc > best_acc:
+            best_acc = valid_acc
             min_loss = valid_loss
             with open(save_file, "wb") as f:
                 torch.save(model, f)
-        #else:
-        #    lr = max(lr*0.9, 1e-5)
+        else:
+            lr = max(lr*0.9, 1e-4)
 
         print("Training set\tLoss: {:5.6f}\tAccuracy: {:2.6f}"
                 .format(train_loss, train_acc))
@@ -83,8 +109,8 @@ def main():
     # Test
     model = torch.load(save_file)
     test_loss, test_acc = model.evaluate(test_data, test_label)
-    print("Best validation loss: {:5.6f}\nTest set\tLoss: {:5.6f}\tAccuracy: {:2.6f}"
-            .format(min_loss, test_loss, test_acc))
+    print("Best validation acc: {:5.6f}\nTest set\tLoss: {:5.6f}\tAccuracy: {:2.6f}"
+            .format(best_acc, test_loss, test_acc))
 
 
 if __name__ == "__main__":
